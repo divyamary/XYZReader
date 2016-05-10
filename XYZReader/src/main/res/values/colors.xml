@@ -28,4 +28,6 @@
     <color name="text_primary">#212121</color>
     <color name="text_secondary">#424242</color>
     <color name="grey_900">#212121</color>
+    <color name="grey_50">#FAFAFA</color>
+    <color name="orange_900">#E65100</color>
 </resources>

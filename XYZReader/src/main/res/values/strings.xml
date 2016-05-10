@@ -10,5 +10,7 @@
     <string name="up">Up</string>
 
     <string name="transition_name_image">transition:IMAGE</string>
+    <string name="share_subject">Article</string>
+    <string name="share_chooser">Share article</string>
 
 </resources>
