@@ -6,26 +6,31 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
-import android.graphics.Bitmap;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.Loader;
 import android.support.v4.util.Pair;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.text.format.DateUtils;
 import android.transition.Fade;
 import android.transition.TransitionManager;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -33,8 +38,8 @@ import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
 import com.example.xyzreader.data.UpdaterService;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
-import com.squareup.picasso.Transformation;
 
 /**
  * An activity representing a list of Articles. This activity has different presentations for
@@ -44,28 +49,104 @@ import com.squareup.picasso.Transformation;
  */
 public class ArticleListActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor> {
-    ;
+
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RecyclerView mRecyclerView;
     private ViewGroup mRootView;
+    private final BroadcastReceiver networkReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (!isInternetConnected()) {
+                Snackbar snackbar = Snackbar.make(mRootView, getString(R.string.empty_feed), Snackbar.LENGTH_LONG);
+                snackbar.show();
+                View sbView = snackbar.getView();
+                TextView textView = (TextView) sbView.findViewById(android.support.design.R.id.snackbar_text);
+                textView.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.accent));
+                snackbar.show();
+            }
+        }
+    };
+    private IntentFilter iFilter;
+    private boolean mIsRefreshing = false;
+    private boolean refreshDone;
+    private TextView emptyView;
+    private BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (UpdaterService.BROADCAST_ACTION_STATE_CHANGE.equals(intent.getAction())) {
+                mIsRefreshing = intent.getBooleanExtra(UpdaterService.EXTRA_REFRESHING, false);
+                if (mIsRefreshing) {
+                    refreshDone = true;
+                }
+                updateRefreshingUI();
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article_list);
+        mRootView = (ViewGroup) findViewById(R.id.main_content);
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        mRootView = (ViewGroup) findViewById(R.id.main_content);
+        emptyView = (TextView) findViewById(R.id.text_empty);
         getSupportLoaderManager().initLoader(0, null, this);
-
-        if (savedInstanceState == null) {
+        iFilter = new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE");
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refresh();
+            }
+        });
+        if (savedInstanceState == null && !refreshDone) {
             refresh();
         }
+    }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterReceiver(mRefreshingReceiver);
+        unregisterReceiver(networkReceiver);
+    }
+
+    private boolean isInternetConnected() {
+        boolean haveConnectedWifi = false;
+        boolean haveConnectedMobile = false;
+
+        ConnectivityManager cm = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        if (netInfo != null) {
+            if (netInfo.getType() == ConnectivityManager.TYPE_WIFI)
+                if (netInfo.isConnected())
+                    haveConnectedWifi = true;
+            if (netInfo.getType() == ConnectivityManager.TYPE_MOBILE)
+                if (netInfo.isConnected())
+                    haveConnectedMobile = true;
+        }
+
+        return haveConnectedWifi || haveConnectedMobile;
     }
 
     private void refresh() {
-        startService(new Intent(this, UpdaterService.class));
+        if (isInternetConnected()) {
+            if (mRecyclerView.getVisibility() == View.GONE) {
+                mRecyclerView.setVisibility(View.VISIBLE);
+                emptyView.setVisibility(View.INVISIBLE);
+            }
+            startService(new Intent(this, UpdaterService.class));
+        } else {
+            Snackbar snackbar = Snackbar.make(mRootView, getString(R.string.empty_feed), Snackbar.LENGTH_LONG);
+            snackbar.show();
+            // Changing snackbar text color
+            View sbView = snackbar.getView();
+            TextView textView = (TextView) sbView.findViewById(android.support.design.R.id.snackbar_text);
+            textView.setTextColor(ContextCompat.getColor(this, R.color.accent));
+            snackbar.show();
+
+        }
     }
 
     @Override
@@ -73,25 +154,8 @@ public class ArticleListActivity extends AppCompatActivity implements
         super.onStart();
         registerReceiver(mRefreshingReceiver,
                 new IntentFilter(UpdaterService.BROADCAST_ACTION_STATE_CHANGE));
+        registerReceiver(networkReceiver, iFilter);
     }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        unregisterReceiver(mRefreshingReceiver);
-    }
-
-    private boolean mIsRefreshing = false;
-
-    private BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (UpdaterService.BROADCAST_ACTION_STATE_CHANGE.equals(intent.getAction())) {
-                mIsRefreshing = intent.getBooleanExtra(UpdaterService.EXTRA_REFRESHING, false);
-                updateRefreshingUI();
-            }
-        }
-    };
 
     private void updateRefreshingUI() {
         mSwipeRefreshLayout.setRefreshing(mIsRefreshing);
@@ -106,7 +170,14 @@ public class ArticleListActivity extends AppCompatActivity implements
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
         Adapter adapter = new Adapter(cursor);
         adapter.setHasStableIds(true);
-        mRecyclerView.setAdapter(adapter);
+        if (cursor != null && cursor.getCount() > 0) {
+            mRecyclerView.setAdapter(adapter);
+        } else  {
+            if(!isInternetConnected()) {
+                mRecyclerView.setVisibility(View.GONE);
+                emptyView.setVisibility(View.VISIBLE);
+            }
+        }
         int columnCount = getResources().getInteger(R.integer.list_column_count);
         StaggeredGridLayoutManager sglm =
                 new StaggeredGridLayoutManager(columnCount, StaggeredGridLayoutManager.VERTICAL);
@@ -130,17 +201,30 @@ public class ArticleListActivity extends AppCompatActivity implements
         return super.onOptionsItemSelected(menuItem);
     }
 
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        public ImageView thumbnailView;
+        public TextView titleView;
+        public TextView subtitleView;
+        public CardView cardView;
+
+        public ViewHolder(View view) {
+            super(view);
+            thumbnailView = (ImageView) view.findViewById(R.id.thumbnail);
+            titleView = (TextView) view.findViewById(R.id.article_title);
+            subtitleView = (TextView) view.findViewById(R.id.article_subtitle);
+            cardView = (CardView) view.findViewById(R.id.card);
+        }
+    }
+
     private class Adapter extends RecyclerView.Adapter<ViewHolder> {
+        private static final int PHOTO_ANIMATION_DELAY = 600;
+        private final Interpolator INTERPOLATOR = new DecelerateInterpolator();
         private Cursor mCursor;
+        private boolean lockedAnimations = false;
+        private int lastAnimatedItem = -1;
 
         public Adapter(Cursor cursor) {
             mCursor = cursor;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            mCursor.moveToPosition(position);
-            return mCursor.getLong(ArticleLoader.Query._ID);
         }
 
         @Override
@@ -158,12 +242,12 @@ public class ArticleListActivity extends AppCompatActivity implements
                         options = ActivityOptionsCompat.makeSceneTransitionAnimation(ArticleListActivity.this,
                                 new Pair<View, String>(view.findViewById(R.id.thumbnail),
                                         view.findViewById(R.id.thumbnail).getTransitionName()));
-                        ActivityCompat.startActivity(ArticleListActivity.this,new Intent(Intent.ACTION_VIEW,
+                        ActivityCompat.startActivity(ArticleListActivity.this, new Intent(Intent.ACTION_VIEW,
                                 ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition()))), options.toBundle());
                     } else {
 
-                    startActivity(new Intent(Intent.ACTION_VIEW,
-                            ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition()))));
+                        startActivity(new Intent(Intent.ACTION_VIEW,
+                                ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition()))));
                     }
                 }
             });
@@ -183,50 +267,56 @@ public class ArticleListActivity extends AppCompatActivity implements
                             DateUtils.FORMAT_ABBREV_ALL).toString()
                             + " by "
                             + mCursor.getString(ArticleLoader.Query.AUTHOR));
-            final double aspectRatio = mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO);
-            Transformation transformation = new Transformation() {
-                @Override
-                public Bitmap transform(Bitmap source) {
-                    int targetHeight = (int) (source.getHeight()/aspectRatio);
-                    int targetWidth = source.getWidth();
-                    Bitmap result = Bitmap.createScaledBitmap(source, targetWidth, targetHeight, false);
-                    if (result != source) {
-                        // Same bitmap is returned if sizes are the same
-                        source.recycle();
-                    }
-                    return result;
-                }
-
-                @Override
-                public String key() {
-                    return "transformation" + " desiredWidth";
-                }
-            };
             Picasso.with(context)
                     .load(mCursor.getString(ArticleLoader.Query.THUMB_URL))
-                    .into(holder.thumbnailView);
-            ViewCompat.setTransitionName(holder.thumbnailView, "image"+mCursor.getLong(ArticleLoader.Query._ID));
-            Log.d("TNAME 1", ""+ViewCompat.getTransitionName(holder.thumbnailView));
+                    .into(holder.thumbnailView, new Callback() {
+                        @Override
+                        public void onSuccess() {
+                            animatePhoto(holder);
+                        }
+
+                        @Override
+                        public void onError() {
+
+                        }
+                    });
+            ViewCompat.setTransitionName(holder.thumbnailView, "image" + mCursor.getLong(ArticleLoader.Query._ID));
         }
 
-
+        @Override
+        public long getItemId(int position) {
+            mCursor.moveToPosition(position);
+            return mCursor.getLong(ArticleLoader.Query._ID);
+        }
 
         @Override
         public int getItemCount() {
             return mCursor.getCount();
         }
-    }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        public ImageView thumbnailView;
-        public TextView titleView;
-        public TextView subtitleView;
+        private void animatePhoto(ViewHolder viewHolder) {
+            if (!lockedAnimations) {
+                if (lastAnimatedItem == viewHolder.getLayoutPosition()) {
+                    setLockedAnimations(true);
+                }
 
-        public ViewHolder(View view) {
-            super(view);
-            thumbnailView = (ImageView) view.findViewById(R.id.thumbnail);
-            titleView = (TextView) view.findViewById(R.id.article_title);
-            subtitleView = (TextView) view.findViewById(R.id.article_subtitle);
+                long animationDelay = PHOTO_ANIMATION_DELAY + viewHolder.getLayoutPosition() * 30;
+                viewHolder.cardView.setScaleY(0.8f);
+                viewHolder.cardView.setAlpha(0.4f);
+                viewHolder.cardView.setScaleX(0.8f);
+                viewHolder.cardView.animate()
+                        .scaleY(1)
+                        .scaleX(1)
+                        .alpha(1f)
+                        .setDuration(100)
+                        .setInterpolator(INTERPOLATOR)
+                        .setStartDelay(animationDelay)
+                        .start();
+            }
+        }
+
+        public void setLockedAnimations(boolean lockedAnimations) {
+            this.lockedAnimations = lockedAnimations;
         }
     }
 }

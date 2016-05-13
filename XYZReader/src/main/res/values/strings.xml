@@ -1,16 +1,14 @@
 <resources>
 
     <string name="app_name">XYZ Reader</string>
-    <string name="welcome_xyz_reader">Welcome to XYZ Reader!</string>
 
     <string name="action_refresh">Refresh</string>
-    <string name="action_settings">Settings</string>
     <string name="action_share">Share</string>
 
-    <string name="up">Up</string>
-
-    <string name="transition_name_image">transition:IMAGE</string>
-    <string name="share_subject">Article</string>
     <string name="share_chooser">Share article</string>
+    <string name="empty_list_text">Swipe down to view the latest feed</string>
+    <string name="empty_feed">Connect to the internet to get the latest feed</string>
+    <string name="not_applicable">N/A</string>
+    <string name="feed_photo">Photo</string>
 
 </resources>

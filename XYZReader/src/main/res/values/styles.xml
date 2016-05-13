@@ -26,8 +26,33 @@
         <item name="android:windowTranslucentStatus" tools:targetApi="kitkat">true</item>
     </style>
 
+
     <style name="Theme.Bacon.Detail">
-        <item name="android:statusBarColor" tools:targetApi="lollipop">@android:color/transparent</item>
+        <item name="android:statusBarColor" tools:targetApi="lollipop">@android:color/transparent
+        </item>
+    </style>
+
+    <style name="ToolbarStyle" parent="@style/ThemeOverlay.AppCompat.ActionBar">
+        <item name="colorControlNormal">@color/grey_50</item>
+    </style>
+    <style name="ListTitleTextStyle" parent="@style/TextAppearance.AppCompat.Title">
+        <item name="android:textSize">@dimen/item_title_text_size</item>
+    </style>
+
+    <style name="ListSubtitleTextStyle" parent="@style/TextAppearance.AppCompat.Small">
+        <item name="android:textSize">@dimen/subtitle_text_size</item>
+    </style>
+
+    <style name="TitleTextStyle" parent="@style/TextAppearance.AppCompat.Title">
+        <item name="android:textSize">@dimen/title_text_size</item>
+    </style>
+
+    <style name="BylineTextStyle" parent="@style/TextAppearance.AppCompat.Small">
+        <item name="android:textSize">@dimen/byline_text_size</item>
+    </style>
+
+    <style name="BodyTextStyle" parent="@style/TextAppearance.AppCompat.Body1">
+        <item name="android:textSize">@dimen/body_text_size</item>
     </style>
 
 </resources>

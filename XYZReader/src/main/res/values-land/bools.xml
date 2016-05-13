@@ -1,0 +1,4 @@
+<resources>
+    <bool name="collapsing_toolbar">false</bool>
+    <bool name="tablet_landscape">false</bool>
+</resources>

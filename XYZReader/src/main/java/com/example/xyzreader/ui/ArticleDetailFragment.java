@@ -37,10 +37,9 @@ import com.squareup.picasso.Picasso;
  * tablets) or a {@link ArticleDetailActivity} on handsets.
  */
 public class ArticleDetailFragment extends Fragment implements
-        LoaderManager.LoaderCallbacks<Cursor>{
-    private static final String TAG = "ArticleDetailFragment";
+        LoaderManager.LoaderCallbacks<Cursor> {
     public static final String ARG_ITEM_ID = "item_id";
-    public static final String VIEW_NAME_HEADER_IMAGE = "detail:header:image";
+    private static final String TAG = "ArticleDetailFragment";
     private Cursor mCursor;
     private long mItemId;
     private View mRootView;
@@ -76,51 +75,44 @@ public class ArticleDetailFragment extends Fragment implements
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        // In support library r8, calling initLoader for a fragment in a FragmentPagerAdapter in
-        // the fragment's onCreate may cause the same LoaderManager to be dealt to multiple
-        // fragments because their mIndex is -1 (haven't been added to the activity yet). Thus,
-        // we do this in onActivityCreated.
-        getLoaderManager().initLoader(0, null, this);
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
         mToolbar = (Toolbar) mRootView.findViewById(R.id.toolbar);
-        ((AppCompatActivity)getActivity()).setSupportActionBar(mToolbar);
-        ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(false);
-        ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayShowHomeEnabled(true);
+        ((AppCompatActivity) getActivity()).setSupportActionBar(mToolbar);
+        if (((AppCompatActivity) getActivity()).getSupportActionBar() != null) {
+            ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(false);
+            ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
         mPhotoView = (ImageView) mRootView.findViewById(R.id.photo);
-        ViewCompat.setTransitionName(mPhotoView, "image"+mItemId);
-        Log.d("TNAME 2", ""+ViewCompat.getTransitionName(mPhotoView));
+        ViewCompat.setTransitionName(mPhotoView, "image" + mItemId);
         bindViews();
-        collapsingToolbarLayout = (CollapsingToolbarLayout) mRootView.findViewById(R.id.collapsing_toolbar);
-        AppBarLayout appBarLayout = (AppBarLayout) mRootView.findViewById(R.id.appBar);
-        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
-            boolean isShow = false;
-            int scrollRange = -1;
+        if (getResources().getBoolean(R.bool.collapsing_toolbar)) {
+            collapsingToolbarLayout = (CollapsingToolbarLayout) mRootView.findViewById(R.id.collapsing_toolbar);
+            AppBarLayout appBarLayout = (AppBarLayout) mRootView.findViewById(R.id.appBar);
+            appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+                boolean isShow = false;
+                int scrollRange = -1;
 
-            @Override
-            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
-                if (scrollRange == -1) {
-                    scrollRange = appBarLayout.getTotalScrollRange();
+                @Override
+                public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                    if (scrollRange == -1) {
+                        scrollRange = appBarLayout.getTotalScrollRange();
+                    }
+                    if (scrollRange + verticalOffset == 0) {
+                        collapsingToolbarLayout.setTitle(articleTitle);
+                        collapsingToolbarLayout.setCollapsedTitleTextAppearance(android.R.style.TextAppearance_Material_Title);
+                        isShow = true;
+                    } else if (isShow) {
+                        collapsingToolbarLayout.setTitle("");
+                        isShow = false;
+                    }
                 }
-                if (scrollRange + verticalOffset == 0) {
-                    collapsingToolbarLayout.setTitle(articleTitle);
-                    isShow = true;
-                } else if(isShow) {
-                    collapsingToolbarLayout.setTitle("");
-                    isShow = false;
-                }
-            }
-        });
-        mFloatingActionButton = (FloatingActionButton)mRootView.findViewById(R.id.share_fab);
-        mFloatingActionButton.setOnClickListener(new View.OnClickListener(){
+            });
+        }
+        mFloatingActionButton = (FloatingActionButton) mRootView.findViewById(R.id.share_fab);
+        mFloatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent shareIntent = new Intent(
@@ -136,6 +128,17 @@ public class ArticleDetailFragment extends Fragment implements
             }
         });
         return mRootView;
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        // In support library r8, calling initLoader for a fragment in a FragmentPagerAdapter in
+        // the fragment's onCreate may cause the same LoaderManager to be dealt to multiple
+        // fragments because their mIndex is -1 (haven't been added to the activity yet). Thus,
+        // we do this in onActivityCreated.
+        getLoaderManager().initLoader(0, null, this);
     }
 
     private void scheduleStartPostponedTransition(final View sharedElement) {
@@ -178,38 +181,45 @@ public class ArticleDetailFragment extends Fragment implements
             bodyView.setText(Html.fromHtml(bodyText));
             Picasso.with(getContext())
                     .load(mCursor.getString(ArticleLoader.Query.PHOTO_URL))
+                    .placeholder(R.drawable.image_backdrop_placeholder)
                     .transform(PaletteTransformation.instance())
                     .into(mPhotoView, new PaletteTransformation.PaletteCallback(mPhotoView) {
                         @Override
                         public void onError() {
-                            Log.e("DetailFragment", "Palette Error");
+                            Log.e(TAG, "Palette Error");
                         }
 
                         @Override
                         public void onSuccess(Palette palette) {
-                            scheduleStartPostponedTransition(mPhotoView);
-                            int grey900Color = ContextCompat.getColor(getContext(), R.color.grey_900);
-                            int grey50Color = ContextCompat.getColor(getContext(), R.color.grey_50);
-                            int darkMutedColor = palette.getDarkMutedColor(grey50Color);
-                            int lightVibrantColor = palette.getLightVibrantColor(grey50Color);
-                            int fabBackgroundColor = palette.getVibrantColor(ContextCompat.getColor(getContext(), R.color.accent));
-                            int lightMutedColor= palette.getLightMutedColor(grey50Color);
-                            mRootView.findViewById(R.id.meta_bar)
-                                    .setBackgroundColor(lightMutedColor);
-                            collapsingToolbarLayout.setContentScrimColor(fabBackgroundColor);
-                            collapsingToolbarLayout.setCollapsedTitleTextColor(grey50Color);
-                            titleView.setTextColor(grey900Color);
-                            bylineView.setTextColor(darkMutedColor);
-                            //mFloatingActionButton.getDrawable().setColorFilter(lightVibrantColor, PorterDuff.Mode.MULTIPLY);
-                            mFloatingActionButton.setBackgroundTintList(ColorStateList.valueOf(fabBackgroundColor));
-                            mFloatingActionButton.setRippleColor(lightVibrantColor);
+                            if (getActivity() != null) {
+                                scheduleStartPostponedTransition(mPhotoView);
+                                int grey900Color = ContextCompat.getColor(getContext(), R.color.grey_900);
+                                int grey50Color = ContextCompat.getColor(getContext(), R.color.grey_50);
+                                int darkMutedColor = palette.getDarkMutedColor(grey50Color);
+                                int fabBackgroundColor = palette.getVibrantColor(ContextCompat.getColor(getContext(), R.color.accent));
+                                int lightMutedColor = palette.getLightMutedColor(grey50Color);
+                                mRootView.findViewById(R.id.meta_bar)
+                                        .setBackgroundColor(lightMutedColor);
+                                if (getResources().getBoolean(R.bool.collapsing_toolbar)) {
+                                    collapsingToolbarLayout.setContentScrimColor(fabBackgroundColor);
+                                }
+                                if (getResources().getBoolean(R.bool.tablet_landscape)) {
+                                    View backgroundView = mRootView.findViewById(R.id.top_bg);
+                                    int bgColor = palette.getDarkMutedColor(grey900Color);
+                                    backgroundView.setBackgroundColor(bgColor);
+                                }
+                                titleView.setTextColor(grey900Color);
+                                bylineView.setTextColor(darkMutedColor);
+                                mFloatingActionButton.setBackgroundTintList(ColorStateList.valueOf(fabBackgroundColor));
+                                mFloatingActionButton.setRippleColor(darkMutedColor);
+                            }
                         }
                     });
         } else {
             mRootView.setVisibility(View.GONE);
-            titleView.setText("N/A");
-            bylineView.setText("N/A" );
-            bodyView.setText("N/A");
+            titleView.setText(getString(R.string.not_applicable));
+            bylineView.setText(getString(R.string.not_applicable));
+            bodyView.setText(getString(R.string.not_applicable));
         }
     }
 
