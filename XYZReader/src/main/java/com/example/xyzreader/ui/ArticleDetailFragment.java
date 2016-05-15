@@ -181,7 +181,7 @@ public class ArticleDetailFragment extends Fragment implements
             bodyView.setText(Html.fromHtml(bodyText));
             Picasso.with(getContext())
                     .load(mCursor.getString(ArticleLoader.Query.PHOTO_URL))
-                    .placeholder(R.drawable.image_backdrop_placeholder)
+                    .placeholder(R.drawable.placeholder)
                     .transform(PaletteTransformation.instance())
                     .into(mPhotoView, new PaletteTransformation.PaletteCallback(mPhotoView) {
                         @Override

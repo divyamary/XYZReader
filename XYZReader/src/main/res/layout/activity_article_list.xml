@@ -52,6 +52,10 @@
             app:contentScrim="?attr/colorPrimary"
             app:expandedTitleMarginEnd="@dimen/toolbar_margin_end"
             app:expandedTitleMarginStart="@dimen/toolbar_margin_start"
+            android:contentInsetStart="0dp"
+            android:contentInsetLeft="0dp"
+            app:contentInsetLeft="0dp"
+            app:contentInsetStart="0dp"
             app:layout_scrollFlags="scroll|exitUntilCollapsed">
 
             <!-- Toolbar is the actual app bar with text and the action items -->

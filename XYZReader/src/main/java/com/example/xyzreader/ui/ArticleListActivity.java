@@ -24,8 +24,6 @@ import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.text.format.DateUtils;
-import android.transition.Fade;
-import android.transition.TransitionManager;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -216,6 +214,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         }
     }
 
+
     private class Adapter extends RecyclerView.Adapter<ViewHolder> {
         private static final int PHOTO_ANIMATION_DELAY = 600;
         private final Interpolator INTERPOLATOR = new DecelerateInterpolator();
@@ -234,9 +233,6 @@ public class ArticleListActivity extends AppCompatActivity implements
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                        TransitionManager.beginDelayedTransition(mRootView, new Fade());
-                    }
                     ActivityOptionsCompat options = null;
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         options = ActivityOptionsCompat.makeSceneTransitionAnimation(ArticleListActivity.this,
@@ -318,5 +314,6 @@ public class ArticleListActivity extends AppCompatActivity implements
         public void setLockedAnimations(boolean lockedAnimations) {
             this.lockedAnimations = lockedAnimations;
         }
+
     }
 }
