@@ -9,6 +9,8 @@ Transformed the user experience of a news reading app by implementing these feat
 * Uses images that are high quality, specific, and full bleed.
 * The app loads jokes from GCE module via an async task.
 
+![XYZ Reader](https://cloud.githubusercontent.com/assets/7263244/15938702/f1673e20-2e91-11e6-9266-c5becaa6c112.gif)
+
 -------
 License
 -------
